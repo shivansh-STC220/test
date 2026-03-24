@@ -9,6 +9,7 @@ app.get('/health', (req, res) => {
 });
 
 app.post('/api/otp/send', (req, res) => {
+  console.log(req.body)
   res.json({ success: true, message: "otp sent successfully" });
 });
 
