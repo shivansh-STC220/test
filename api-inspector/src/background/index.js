@@ -74,7 +74,8 @@ chrome.runtime.onConnect.addListener((port) => {
     if (!viewers.has(tabId)) viewers.set(tabId, new Set());
     viewers.get(tabId).add(port);
     const calls = await getCalls(tabId);
-    port.postMessage({ type: 'init', calls, paused: pausedFor(tabId), ...tabState(tabId) });
+    const url = (await chrome.tabs.get(tabId).catch(() => null))?.url || '';
+    port.postMessage({ type: 'init', calls, url, paused: pausedFor(tabId), ...tabState(tabId) });
   });
   port.onDisconnect.addListener(() => {
     if (tabId != null) viewers.get(tabId)?.delete(port);
@@ -238,6 +239,8 @@ chrome.webNavigation.onCommitted.addListener(async (d) => {
   await ready;
   const before = Math.min(navStart.get(d.tabId) ?? d.timeStamp, d.timeStamp);
   navStart.delete(d.tabId);
+  // Screens use this to know the page (and maybe the website) changed.
+  push(d.tabId, { type: 'nav', url: d.url });
   if (preserve.get(d.tabId)) {
     await saveCall(d.tabId, `nav-${Math.round(d.timeStamp)}`, { type: 'nav', url: d.url, start: before - 0.5, state: 'done' });
     return;

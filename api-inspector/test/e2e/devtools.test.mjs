@@ -92,7 +92,12 @@ describe('DevTools tab', { skip: noScreen && 'needs a screen (use xvfb-run on Li
   it('Export JSON works inside DevTools', async () => {
     // Playwright keeps downloads itself, in its artifacts folder, with random names.
     const before = await artifacts();
-    const panel = (await targets()).find((t) => t.url.includes('/panel.html') && t.webSocketDebuggerUrl);
+    // There is a DevTools window for each tab (one is an empty about:blank tab): use the one with calls.
+    let panel = null;
+    for (const t of (await targets()).filter((x) => x.url.includes('/panel.html') && x.webSocketDebuggerUrl)) {
+      if (await evalIn(t.webSocketDebuggerUrl, "document.querySelectorAll('[data-testid=call-row]').length")) panel = t;
+    }
+    assert.ok(panel, 'a DevTools tab with calls');
     await evalIn(panel.webSocketDebuggerUrl, "document.querySelector('[data-testid=btn-export]').click()");
     const file = await waitFor(async () => (await artifacts()).find((f) => !before.includes(f)), { timeout: 10000, message: 'downloaded file' });
     const data = JSON.parse(await readFile(file, 'utf8'));

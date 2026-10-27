@@ -2,37 +2,114 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Theme colors. Light by default, dark when <html class="dark">. */
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --subtle: #f7f8fa;
+  --muted: #eef0f4;
+  --line: #e3e6ec;
+  --line-2: #eceef2;
+  --fg: #1c2230;
+  --fg-2: #586274;
+  --fg-3: #8b94a5;
+  --accent: #5b5bd6;
+  --accent-soft: #eef0ff;
+  --accent-fg: #4141b5;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #1f2024;
+  --surface: #25272c;
+  --subtle: #232428;
+  --muted: #2e3036;
+  --line: #34363d;
+  --line-2: #2c2e34;
+  --fg: #e7e9ee;
+  --fg-2: #a6adba;
+  --fg-3: #747c8b;
+  --accent: #7c7cf2;
+  --accent-soft: rgba(124, 124, 242, 0.16);
+  --accent-fg: #b0b0ff;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-fg);
+}
+
 @layer base {
   html, body, #root { height: 100%; }
   body {
-    @apply bg-white text-slate-800 dark:bg-zinc-900 dark:text-zinc-200;
-    font: 12px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    font: 12px/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  input, select, textarea, button { font: inherit; }
-  code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  input, select, textarea, button { font: inherit; color: inherit; }
+  code, pre, .mono { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; }
+  ::selection { background: var(--accent-soft); }
+  * { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-0.5 text-slate-700 hover:bg-slate-50 disabled:opacity-50
-      dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700;
+    @apply inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 font-medium text-fg shadow-[0_1px_0_rgba(0,0,0,0.03)] transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
-    @apply inline-flex items-center gap-1 rounded border border-indigo-600 bg-indigo-600 px-2 py-0.5 text-white hover:bg-indigo-500 disabled:opacity-50;
+    @apply inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-transparent bg-accent px-2.5 font-medium text-white shadow-sm transition hover:brightness-110 disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-danger {
-    @apply inline-flex items-center gap-1 rounded border border-rose-600 bg-rose-600 px-2 py-0.5 text-white hover:bg-rose-500;
+    @apply inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-transparent bg-rose-600 px-2.5 font-medium text-white shadow-sm transition hover:bg-rose-500 disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 font-medium text-fg-2 transition-colors hover:bg-muted hover:text-fg disabled:opacity-50;
+  }
+  .icon-btn {
+    @apply grid h-7 w-7 shrink-0 place-items-center rounded-md text-fg-2 transition-colors hover:bg-muted hover:text-fg disabled:opacity-40;
   }
   .input {
-    @apply rounded border border-slate-300 bg-white px-1.5 py-0.5 text-slate-800 outline-none focus:border-indigo-500
-      dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100;
+    @apply h-7 rounded-md border border-line bg-surface px-2 text-fg outline-none transition placeholder:text-fg-3 focus:border-accent focus:ring-2 focus:ring-accent/20;
   }
-  .label { @apply text-[11px] font-medium text-slate-500 dark:text-zinc-400; }
-  .chip {
-    @apply inline-flex items-center rounded px-1 py-px text-[10px] font-medium;
-  }
-  .tab {
-    @apply border-b-2 border-transparent px-2.5 py-1.5 text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-100;
-  }
-  .tab-on { @apply border-indigo-500 text-indigo-600 dark:text-indigo-400; }
+  textarea.input { @apply h-auto py-1.5 leading-relaxed; }
+  select.input { @apply pr-6; }
+  .card { @apply rounded-lg border border-line bg-surface; }
+  .label { @apply text-[11px] font-medium text-fg-2; }
+  .eyebrow { @apply text-[10.5px] font-semibold uppercase tracking-[0.06em] text-fg-3; }
+  .chip { @apply inline-flex items-center gap-1 rounded px-1.5 py-px text-[10.5px] font-medium; }
+  .pill { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium; }
+  .divider { @apply h-4 w-px shrink-0 bg-line; }
+  .kbd { @apply rounded border border-line bg-subtle px-1 text-[10px] text-fg-2; }
 }
+
+@keyframes ai-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.pulse { animation: ai-pulse 1.4s ease-in-out infinite; }
+
+@keyframes ai-slide-in { from { transform: translateX(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.slide-in { animation: ai-slide-in .18s ease-out; }
+
+@keyframes ai-pop { from { transform: scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
+.pop { animation: ai-pop .14s ease-out; }
+
+/* JSON colors */
+.j-key { color: #7c3aed; }
+.j-str { color: #0f7b3e; }
+.j-num { color: #1d4ed8; }
+.j-bool { color: #c2410c; }
+.j-null { color: #8b94a5; }
+.dark .j-key { color: #c4a5ff; }
+.dark .j-str { color: #7ee2a8; }
+.dark .j-num { color: #93b8ff; }
+.dark .j-bool { color: #fdba74; }

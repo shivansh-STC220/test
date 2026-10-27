@@ -155,7 +155,7 @@ export const STATUS_TEXT = {
   502: 'Bad Gateway', 503: 'Service Unavailable', 504: 'Gateway Timeout',
 };
 
-// Short text for the rules list, like "URL contains /cart · POST · on shop.com".
+// Short text for the rules list, like "URL contains /cart · POST". The site has its own badge.
 export function matchSummary(rule) {
   const m = rule.match || {};
   const parts = [];
@@ -163,7 +163,6 @@ export function matchSummary(rule) {
   else if (m.url) parts.push(`URL ${m.urlType || 'contains'} ${m.url}`);
   else parts.push('Any URL');
   if (m.methods?.length) parts.push(m.methods.join(', '));
-  if (m.site) parts.push(`on ${m.site}`);
   return parts.join(' · ');
 }
 

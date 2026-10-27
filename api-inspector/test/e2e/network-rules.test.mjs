@@ -204,8 +204,8 @@ describe('network rules', () => {
   it('D2: create a rule on the rules page, and O5: export / import', async () => {
     const rp = await h.ctx.newPage();
     await rp.goto(h.url('rules.html'));
-    await rp.getByTestId('new-type').selectOption('redirect');
     await rp.getByTestId('new-rule').click();
+    await rp.getByTestId('type-redirect').click();
     await rp.getByTestId('rule-name').fill('UI redirect');
     await rp.getByTestId('match-url').fill('/api/status/405');
     await rp.getByTestId('rule-save').click();
@@ -218,8 +218,9 @@ describe('network rules', () => {
     assert.equal((await pageFetch(page, '/api/status/405')).json.query.from, 'ui');
 
     // Group made on the page.
-    rp.once('dialog', (d) => d.accept('StockBeacon'));
     await rp.getByTestId('new-group').click();
+    await rp.getByTestId('new-group-input').fill('StockBeacon');
+    await rp.getByTestId('new-group-input').press('Enter');
     await rp.locator('[data-testid="group-item"]').filter({ hasText: 'StockBeacon' }).waitFor();
 
     // Export

@@ -6,6 +6,7 @@ export function usePanelData(tabId) {
   const [paused, setPaused] = useState([]);
   const [tabState, setTabState] = useState({ preserve: false, debugger: false, hits: 0 });
   const [connected, setConnected] = useState(false);
+  const [pageUrl, setPageUrl] = useState('');
   const pending = useRef([]);
   const frame = useRef(0);
 
@@ -35,6 +36,7 @@ export function usePanelData(tabId) {
           setCalls(new Map(m.calls.map((c) => [c.id, c])));
           setPaused(m.paused || []);
           setTabState({ preserve: m.preserve, debugger: m.debugger, hits: m.hits });
+          if (m.url) setPageUrl(m.url);
           setConnected(true);
           break;
         case 'call':
@@ -44,6 +46,9 @@ export function usePanelData(tabId) {
         case 'cleared':
           pending.current = m.before == null ? [] : pending.current.filter((c) => (c.start ?? 0) >= m.before);
           setCalls((prev) => (m.before == null ? new Map() : new Map([...prev].filter(([, c]) => (c.start ?? 0) >= m.before))));
+          break;
+        case 'nav':
+          setPageUrl(m.url || '');
           break;
         case 'paused':
           setPaused(m.list || []);
@@ -72,5 +77,5 @@ export function usePanelData(tabId) {
     };
   }, [tabId]);
 
-  return { calls, paused, tabState, setTabState, connected };
+  return { calls, paused, tabState, setTabState, connected, pageUrl };
 }

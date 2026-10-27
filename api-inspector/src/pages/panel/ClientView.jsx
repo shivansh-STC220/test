@@ -1,12 +1,26 @@
 // API client (C2): a small Postman-like tab.
 import { useEffect, useRef, useState } from 'react';
 import { METHODS } from '../../shared/rules.js';
-import { BodyView, HeadersTable, headersToText, send, textToHeaders } from '../../ui/components.jsx';
+import { BodyView, HeadersTable, headersToText, MethodTag, send, textToHeaders } from '../../ui/components.jsx';
+import { Icon } from '../../ui/icons.jsx';
 import { formatBytes } from '../../shared/calls.js';
 
 const EMPTY = { method: 'GET', url: '', headers: '', body: '', from: 'extension' };
 
 const fromCall = (c) => ({ method: c.method || 'GET', url: c.url || '', headers: headersToText(c.reqHeaders), body: c.reqBody || '', from: 'page' });
+
+function FromOption({ value, current, onChange, title, hint, testId }) {
+  const on = current === value;
+  return (
+    <label className={`flex cursor-pointer items-start gap-2 rounded-md border px-2.5 py-1.5 ${on ? 'border-accent/50 bg-accent-soft' : 'border-line hover:bg-subtle'}`}>
+      <input type="radio" name="from" data-testid={testId} className="mt-0.5 accent-[var(--accent)]" checked={on} onChange={() => onChange(value)} />
+      <span>
+        <span className="block font-medium">{title}</span>
+        <span className="block text-[11px] text-fg-2">{hint}</span>
+      </span>
+    </label>
+  );
+}
 
 export default function ClientView({ tabId, preset }) {
   // Fill the form on the first draw, so "Edit & send" never shows an empty form first.
@@ -42,25 +56,27 @@ export default function ClientView({ tabId, preset }) {
   };
 
   const set = (patch) => setReq({ ...req, ...patch });
+  const ok = res?.ok && res.status < 400;
 
   return (
     <div className="flex min-h-0 flex-1">
-      <div className="min-h-0 flex-1 overflow-auto p-2">
-        <div className="flex items-center gap-1">
-          <select data-testid="client-method" className="input" value={req.method} onChange={(e) => set({ method: e.target.value })}>
+      <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3">
+        <div className="flex items-center gap-0 overflow-hidden rounded-lg border border-line bg-surface shadow-sm focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
+          <select data-testid="client-method" className="h-9 border-0 border-r border-line bg-subtle px-2 font-semibold outline-none" value={req.method} onChange={(e) => set({ method: e.target.value })}>
             {METHODS.map((m) => <option key={m}>{m}</option>)}
           </select>
-          <input data-testid="client-url" className="input mono flex-1" placeholder="https://…" value={req.url} onChange={(e) => set({ url: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && go()} />
-          <button type="button" data-testid="client-send" className="btn-primary" disabled={busy || !req.url} onClick={go}>{busy ? 'Sending…' : 'Send'}</button>
+          <input data-testid="client-url" className="mono h-9 min-w-0 flex-1 bg-transparent px-3 text-[12.5px] outline-none placeholder:text-fg-3" placeholder="https://…" value={req.url} onChange={(e) => set({ url: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && go()} />
+          <button type="button" data-testid="client-send" className="btn-primary m-1 h-7" disabled={busy || !req.url} onClick={go}>
+            <Icon name="send" size={13} /> {busy ? 'Sending…' : 'Send'}
+          </button>
         </div>
-        <div className="mt-2 flex items-center gap-3">
-          <span className="label">Send from</span>
-          <label className="inline-flex items-center gap-1"><input type="radio" name="from" data-testid="client-from-extension" checked={req.from === 'extension'} onChange={() => set({ from: 'extension' })} /> Extension (no CORS limits)</label>
-          <label className="inline-flex items-center gap-1"><input type="radio" name="from" data-testid="client-from-page" checked={req.from === 'page'} onChange={() => set({ from: 'page' })} /> Page (uses the page's cookies and CORS)</label>
+        <div className="grid grid-cols-2 gap-2">
+          <FromOption testId="client-from-extension" value="extension" current={req.from} onChange={(v) => set({ from: v })} title="Send from the extension" hint="No CORS limits. Cookies of the site are sent." />
+          <FromOption testId="client-from-page" value="page" current={req.from} onChange={(v) => set({ from: v })} title="Send from the page" hint="Same as the page's own fetch: its cookies and CORS." />
         </div>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <label className="flex flex-col gap-1">
-            <span className="label">Headers (one per line, Name: value)</span>
+            <span className="label">Headers <span className="text-fg-3">(one per line, Name: value)</span></span>
             <textarea data-testid="client-headers" className="input mono h-28" value={req.headers} onChange={(e) => set({ headers: e.target.value })} placeholder={'Content-Type: application/json'} />
           </label>
           <label className="flex flex-col gap-1">
@@ -68,37 +84,39 @@ export default function ClientView({ tabId, preset }) {
             <textarea data-testid="client-body" className="input mono h-28" value={req.body} onChange={(e) => set({ body: e.target.value })} placeholder={'{"key": "value"}'} />
           </label>
         </div>
-        <div className="mt-1 text-[11px] text-amber-600">On live stores, these calls are real.</div>
+        <div className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400"><Icon name="alert" size={12} /> On live stores, these calls are real.</div>
         {res && (
-          <div className="mt-3 rounded border border-slate-200 dark:border-zinc-700" data-testid="client-response">
+          <section className="card pop overflow-hidden" data-testid="client-response">
             {res.ok ? (
               <>
-                <div className="flex gap-3 border-b border-slate-200 px-2 py-1 dark:border-zinc-700">
-                  <span data-testid="client-status" className={res.status < 400 ? 'text-emerald-600' : 'text-rose-600'}>{res.status} {res.statusText}</span>
-                  <span className="text-slate-500">{res.time} ms</span>
-                  <span className="text-slate-500">{formatBytes(res.size)}</span>
+                <div className="flex items-center gap-3 border-b border-line-2 bg-subtle px-3 py-1.5">
+                  <span className="font-semibold">Response</span>
+                  <span data-testid="client-status" className={`pill ${ok ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/12 text-rose-700 dark:text-rose-300'}`}>{res.status} {res.statusText}</span>
+                  <span className="text-fg-2 tabular-nums">{res.time} ms</span>
+                  <span className="text-fg-2 tabular-nums">{formatBytes(res.size)}</span>
                 </div>
-                <details>
-                  <summary className="cursor-pointer px-2 py-1 text-slate-500">Response headers</summary>
+                <details className="border-b border-line-2">
+                  <summary className="cursor-pointer px-3 py-1.5 text-fg-2">Response headers</summary>
                   <HeadersTable headers={res.headers} />
                 </details>
-                <BodyView testId="client-body-view" text={res.body} truncated={res.truncated} />
+                <div className="py-1"><BodyView testId="client-body-view" text={res.body} truncated={res.truncated} /></div>
               </>
             ) : (
-              <div className="p-2 text-rose-600" data-testid="client-error">{res.error}</div>
+              <div className="flex items-center gap-2 px-3 py-2 text-rose-600 dark:text-rose-400" data-testid="client-error"><Icon name="alert" size={13} />{res.error}</div>
             )}
-          </div>
+          </section>
         )}
       </div>
-      <div className="w-56 shrink-0 overflow-auto border-l border-slate-200 p-2 dark:border-zinc-700">
-        <div className="label mb-1">History</div>
+      <aside className="w-60 shrink-0 overflow-auto border-l border-line bg-subtle p-2">
+        <div className="eyebrow mb-1.5 flex items-center gap-1.5 px-1"><Icon name="history" size={12} /> History</div>
         {history.map((h, i) => (
-          <button key={i} type="button" className="block w-full truncate rounded px-1 py-0.5 text-left hover:bg-slate-100 dark:hover:bg-zinc-800" title={h.url} onClick={() => setReq({ ...EMPTY, ...h })}>
-            <span className="mono font-semibold">{h.method}</span> <span className="mono">{h.url}</span>
+          <button key={i} type="button" className="flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-left hover:bg-muted" title={h.url} onClick={() => setReq({ ...EMPTY, ...h })}>
+            <MethodTag method={h.method} />
+            <span className="mono truncate text-fg-2">{h.url.replace(/^https?:\/\//, '')}</span>
           </button>
         ))}
-        {!history.length && <div className="text-slate-400">Nothing sent yet.</div>}
-      </div>
+        {!history.length && <div className="px-1 text-fg-3">Nothing sent yet.</div>}
+      </aside>
     </div>
   );
 }

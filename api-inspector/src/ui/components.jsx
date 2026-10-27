@@ -1,12 +1,17 @@
 // Small building blocks shared by the screens.
 import { useEffect, useMemo, useState } from 'react';
+import { Icon } from './icons.jsx';
 
+// Light or dark: inside DevTools follow the DevTools theme, elsewhere follow Chrome / the OS.
 export function applyTheme() {
-  const devtoolsDark = typeof chrome !== 'undefined' && chrome.devtools?.panels?.themeName === 'dark';
+  const panels = typeof chrome !== 'undefined' ? chrome.devtools?.panels : null;
   const media = window.matchMedia?.('(prefers-color-scheme: dark)');
-  const set = () => document.documentElement.classList.toggle('dark', devtoolsDark || !!media?.matches);
+  const set = () => {
+    const dark = panels ? panels.themeName === 'dark' : !!media?.matches;
+    document.documentElement.classList.toggle('dark', dark);
+  };
   set();
-  media?.addEventListener?.('change', set);
+  if (!panels) media?.addEventListener?.('change', set);
 }
 
 export function queryParam(name) {
@@ -38,38 +43,25 @@ export function useStorage(keys, defaults = {}) {
   return data;
 }
 
-export function Toggle({ checked, onChange, label, title, testId, small }) {
+export function Toggle({ checked, onChange, label, title, testId, small, disabled }) {
   return (
-    <label className="inline-flex cursor-pointer select-none items-center gap-1.5" title={title}>
+    <label className={`inline-flex select-none items-center gap-2 ${disabled ? 'opacity-50' : 'cursor-pointer'}`} title={title}>
       <button
         type="button"
         role="switch"
         aria-checked={!!checked}
         aria-label={label || title}
         data-testid={testId}
-        onClick={() => onChange(!checked)}
-        className={`relative inline-flex shrink-0 rounded-full transition-colors ${small ? 'h-3.5 w-6' : 'h-4 w-7'} ${checked ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-zinc-600'}`}
+        disabled={disabled}
+        onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
+        className={`relative inline-flex shrink-0 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${small ? 'h-4 w-7' : 'h-5 w-9'} ${checked ? 'bg-accent' : 'bg-zinc-300 dark:bg-zinc-600'}`}
       >
         <span
-          className={`absolute top-0.5 rounded-full bg-white shadow transition-transform ${small ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${checked ? (small ? 'translate-x-3' : 'translate-x-3.5') : 'translate-x-0.5'}`}
+          className={`absolute top-0.5 rounded-full bg-white shadow-sm transition-transform ${small ? 'h-3 w-3' : 'h-4 w-4'} ${checked ? (small ? 'translate-x-3.5' : 'translate-x-4.5') : 'translate-x-0.5'}`}
         />
       </button>
       {label && <span>{label}</span>}
     </label>
-  );
-}
-
-export function Tabs({ tabs, value, onChange, right }) {
-  return (
-    <div className="flex items-center border-b border-slate-200 dark:border-zinc-700">
-      {tabs.map((t) => (
-        <button key={t.id} type="button" data-testid={`tab-${t.id}`} className={`tab ${value === t.id ? 'tab-on' : ''}`} onClick={() => onChange(t.id)}>
-          {t.label}
-          {t.badge != null && <span className="ml-1 rounded bg-slate-200 px-1 text-[10px] dark:bg-zinc-700">{t.badge}</span>}
-        </button>
-      ))}
-      <div className="ml-auto flex items-center gap-2 pr-2">{right}</div>
-    </div>
   );
 }
 
@@ -83,31 +75,75 @@ export function prettyBody(text) {
   return t;
 }
 
+const JSON_TOKEN = /("(?:\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(?:true|false)\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g;
+
+// Colors for JSON (only for bodies that are not huge, to stay fast).
+function highlight(pretty) {
+  if (pretty.length > 200000) return pretty;
+  const out = [];
+  let last = 0;
+  let i = 0;
+  for (const m of pretty.matchAll(JSON_TOKEN)) {
+    if (m.index > last) out.push(pretty.slice(last, m.index));
+    const tok = m[0];
+    const cls = tok.startsWith('"') ? (m[2] ? 'j-key' : 'j-str') : tok === 'null' ? 'j-null' : tok === 'true' || tok === 'false' ? 'j-bool' : 'j-num';
+    out.push(<span key={i++} className={cls}>{tok}</span>);
+    last = m.index + tok.length;
+  }
+  out.push(pretty.slice(last));
+  return out;
+}
+
+export function CopyButton({ text, label, className = '' }) {
+  const [done, setDone] = useState(false);
+  return (
+    <button
+      type="button"
+      className={label ? `btn-ghost h-6 px-1.5 text-[11px] ${className}` : `icon-btn h-6 w-6 ${className}`}
+      title="Copy"
+      onClick={(e) => {
+        e.stopPropagation();
+        navigator.clipboard?.writeText(String(text ?? '')).catch(() => {});
+        setDone(true);
+        setTimeout(() => setDone(false), 1200);
+      }}
+    >
+      <Icon name={done ? 'check' : 'copy'} size={13} className={done ? 'text-emerald-500' : ''} />
+      {label && (done ? 'Copied' : label)}
+    </button>
+  );
+}
+
 export function BodyView({ text, truncated, empty = 'No body', testId }) {
   const pretty = useMemo(() => prettyBody(text), [text]);
-  if (text == null || text === '') return <div className="p-2 italic text-slate-400">{empty}</div>;
+  const isJson = pretty !== String(text ?? '') || /^\s*[[{]/.test(String(text ?? ''));
+  const content = useMemo(() => (isJson ? highlight(pretty) : pretty), [pretty, isJson]);
+  if (text == null || text === '') return <div className="px-3 py-2 text-fg-3">{empty}</div>;
   return (
-    <div>
-      {truncated && <div className="bg-amber-50 px-2 py-1 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Body was cut at 1 MB.</div>}
-      <pre data-testid={testId} className="mono max-h-[60vh] overflow-auto whitespace-pre-wrap break-all p-2 text-[11px]">{pretty}</pre>
+    <div className="relative">
+      {truncated && (
+        <div className="mx-3 mb-1 flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2 py-1 text-amber-700 dark:text-amber-300">
+          <Icon name="info" size={13} /> Body was cut at 1 MB.
+        </div>
+      )}
+      <div className="absolute right-2 top-1"><CopyButton text={text} /></div>
+      <pre data-testid={testId} className="mono max-h-[60vh] overflow-auto whitespace-pre-wrap break-all px-3 py-2 pr-9 leading-relaxed">{content}</pre>
     </div>
   );
 }
 
 export function HeadersTable({ headers }) {
   const list = Object.entries(headers || {});
-  if (!list.length) return <div className="p-2 italic text-slate-400">No headers</div>;
+  if (!list.length) return <div className="px-3 py-2 text-fg-3">No headers</div>;
   return (
-    <table className="w-full text-[11px]">
-      <tbody>
-        {list.map(([k, v]) => (
-          <tr key={k} className="align-top">
-            <td className="mono w-1/3 py-0.5 pl-2 pr-2 font-medium text-slate-500 dark:text-zinc-400">{k}</td>
-            <td className="mono break-all py-0.5 pr-2">{v}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <dl className="grid grid-cols-[minmax(110px,32%)_1fr] gap-x-3 gap-y-1 px-3 py-1.5">
+      {list.map(([k, v]) => (
+        <div key={k} className="contents">
+          <dt className="mono truncate text-fg-2" title={k}>{k}</dt>
+          <dd className="mono break-all">{v}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -116,22 +152,24 @@ export function KeyValueEditor({ rows, onChange, ops, keyField = 'name', namePla
   const list = rows || [];
   const set = (i, patch) => onChange(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   return (
-    <div className="space-y-1" data-testid={testId}>
+    <div className="space-y-1.5" data-testid={testId}>
       {list.map((r, i) => (
-        <div key={i} className="flex items-center gap-1" data-testid={testId && `${testId}-row`}>
+        <div key={i} className="flex items-center gap-1.5" data-testid={testId && `${testId}-row`}>
           {ops && (
-            <select className="input" value={r.op || ops[0].value} onChange={(e) => set(i, { op: e.target.value })}>
+            <select className="input w-28" value={r.op || ops[0].value} onChange={(e) => set(i, { op: e.target.value })}>
               {ops.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           )}
           <input className="input mono w-40" placeholder={namePlaceholder} value={r[keyField] ?? ''} onChange={(e) => set(i, { [keyField]: e.target.value })} />
           {r.op !== 'remove' && (
-            <input className="input mono flex-1" placeholder={valuePlaceholder} value={r.value ?? ''} onChange={(e) => set(i, { value: e.target.value })} />
+            <input className="input mono min-w-0 flex-1" placeholder={valuePlaceholder} value={r.value ?? ''} onChange={(e) => set(i, { value: e.target.value })} />
           )}
-          <button type="button" className="btn" title="Remove" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
+          <button type="button" className="icon-btn" title="Remove" onClick={() => onChange(list.filter((_, j) => j !== i))}><Icon name="trash" size={13} /></button>
         </div>
       ))}
-      <button type="button" className="btn" data-testid={testId && `${testId}-add`} onClick={() => onChange([...list, { ...(ops ? { op: ops[0].value } : {}), [keyField]: '', value: '' }])}>+ Add</button>
+      <button type="button" className="btn-ghost -ml-1 text-accent-fg" data-testid={testId && `${testId}-add`} onClick={() => onChange([...list, { ...(ops ? { op: ops[0].value } : {}), [keyField]: '', value: '' }])}>
+        <Icon name="plus" size={13} /> Add
+      </button>
     </div>
   );
 }
@@ -162,21 +200,59 @@ export function download(name, data) {
   }, 1000);
 }
 
-export const METHOD_COLORS = {
-  GET: 'text-emerald-600 dark:text-emerald-400',
-  POST: 'text-amber-600 dark:text-amber-400',
-  PUT: 'text-sky-600 dark:text-sky-400',
-  PATCH: 'text-violet-600 dark:text-violet-400',
-  DELETE: 'text-rose-600 dark:text-rose-400',
+const METHOD_TONES = {
+  GET: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300',
+  POST: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+  PUT: 'bg-sky-500/12 text-sky-700 dark:text-sky-300',
+  PATCH: 'bg-violet-500/12 text-violet-700 dark:text-violet-300',
+  DELETE: 'bg-rose-500/12 text-rose-700 dark:text-rose-300',
 };
 
-export function statusColor(cls) {
-  return {
-    '2xx': 'text-emerald-600 dark:text-emerald-400',
-    '3xx': 'text-sky-600 dark:text-sky-400',
-    '4xx': 'text-amber-600 dark:text-amber-400',
-    '5xx': 'text-rose-600 dark:text-rose-400',
-    failed: 'text-rose-600 dark:text-rose-400',
-    pending: 'text-slate-400',
-  }[cls] || '';
+export function MethodTag({ method, className = '' }) {
+  return (
+    <span className={`mono inline-flex h-[18px] min-w-[38px] items-center justify-center rounded px-1 text-[10px] font-semibold tracking-wide ${METHOD_TONES[method] || 'bg-zinc-500/12 text-fg-2'} ${className}`}>
+      {method === 'DELETE' ? 'DEL' : method}
+    </span>
+  );
+}
+
+export const STATUS_TONES = {
+  '2xx': { dot: 'bg-emerald-500', text: 'text-emerald-700 dark:text-emerald-300', bar: 'bg-emerald-500/60' },
+  '3xx': { dot: 'bg-sky-500', text: 'text-sky-700 dark:text-sky-300', bar: 'bg-sky-500/60' },
+  '4xx': { dot: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-300', bar: 'bg-amber-500/60' },
+  '5xx': { dot: 'bg-rose-500', text: 'text-rose-700 dark:text-rose-300', bar: 'bg-rose-500/60' },
+  failed: { dot: 'bg-rose-500', text: 'text-rose-700 dark:text-rose-300', bar: 'bg-rose-500/60' },
+  pending: { dot: 'bg-zinc-400 pulse', text: 'text-fg-3', bar: 'bg-zinc-400/50' },
+  '': { dot: 'bg-zinc-300 dark:bg-zinc-600', text: 'text-fg-3', bar: 'bg-zinc-400/40' },
+};
+
+export function statusTone(cls) {
+  return STATUS_TONES[cls] || STATUS_TONES[''];
+}
+
+export function EmptyState({ icon = 'activity', title, children, action }) {
+  return (
+    <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+      <div className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-accent-soft text-accent-fg">
+        <Icon name={icon} size={20} />
+      </div>
+      <div className="text-[13px] font-semibold">{title}</div>
+      {children && <div className="mt-1 max-w-sm text-fg-2">{children}</div>}
+      {action && <div className="mt-3">{action}</div>}
+    </div>
+  );
+}
+
+export function SiteChip({ host, className = '' }) {
+  if (!host) return null;
+  return (
+    <span className={`pill max-w-[220px] bg-muted text-fg-2 ${className}`} title={`Website: ${host}`} data-testid="site-chip">
+      <Icon name="globe" size={12} />
+      <span className="mono truncate">{host}</span>
+    </span>
+  );
+}
+
+export function hostnameOf(url) {
+  try { return new URL(url).hostname; } catch { return ''; }
 }

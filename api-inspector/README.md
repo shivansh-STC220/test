@@ -29,9 +29,15 @@ After a code change, run `npm run build` again and click the reload icon on the 
     Run **Scan source** to also count APIs that are in the code but were not called yet.
   - **Search**: type an endpoint to see every call to it. **Scan source** finds the text in the page's JS files, with file and line.
   - **API client**: send any request by hand, from the extension (no CORS limits) or from the page (uses its cookies).
-- **Popup** (toolbar icon): turn all rules, groups or this site's rules on and off. The badge shows how many rule hits this tab had.
+- **Popup** (toolbar icon): shows the website you are on, its rules, the rules for all websites, and groups, each with an on/off switch.
+  The badge shows how many rule hits this tab had. "New rule" starts a rule for this website.
   "Open inspector in a tab" opens the same screen as DevTools, in a normal tab.
 - **Rules page** (popup → Rules page): create, edit, group, import and export rules.
+  Rules are saved per website: opened from the popup, new rules are for the website you are on (you can pick "All websites").
+  The sidebar lists each website and its rules.
+
+When you switch websites in the same tab, the DevTools tab clears the old site's scan results, search text and filters,
+so nothing from the old site gets mixed in. With "Preserve log" on, old calls stay, with a "Navigated to" line between sites.
 
 ## What is in it
 
