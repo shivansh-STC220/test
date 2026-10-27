@@ -1,0 +1,24 @@
+{
+  "name": "api-inspector",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chrome extension: see which API each button calls, find where an API is used, and change or fake requests.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test \"test/unit/*.test.mjs\"",
+    "test:e2e": "npm run build && node --test --test-concurrency=1 \"test/e2e/*.test.mjs\"",
+    "test-site": "node test/fixtures/start.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.1.2",
+    "playwright": "1.63.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.5"
+  }
+}

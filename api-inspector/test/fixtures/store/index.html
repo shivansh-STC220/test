@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Test Store (Dawn-like)</title>
+  <style>body{font-family:sans-serif;padding:16px} button{margin:4px;padding:6px 10px}</style>
+</head>
+<body>
+  <div id="shopify-section-header" class="shopify-section section-header">
+    <header><button id="cart-icon" aria-label="Cart">Cart</button></header>
+  </div>
+
+  <div id="shopify-section-template--16124__main" class="shopify-section section">
+    <section class="product">
+      <h1>Test product</h1>
+      <form method="post" action="/cart/add" id="product-form-main" class="form">
+        <input type="hidden" name="id" value="40123">
+        <input type="number" name="quantity" value="1" id="qty">
+        <button type="submit" name="add" id="form-add">Add to cart (form)</button>
+      </form>
+      <button type="button" id="ajax-add" class="button button--primary">Add to cart</button>
+      <button type="button" id="xhr-cart" class="button">Cart (XHR)</button>
+    </section>
+  </div>
+
+  <div id="shopify-block-AbC123xyz" class="shopify-block shopify-app-block" data-block-handle="stock-beacon">
+    <div class="stock-widget"><button id="notify-btn">Notify me</button></div>
+  </div>
+
+  <div id="shopify-section-template--16124__tools" class="shopify-section">
+    <button id="beacon-btn">Send analytics</button>
+    <button id="big-btn">Load big</button>
+    <button id="status-btn">Status 500 call</button>
+    <button id="echo-btn">Echo</button>
+    <button id="product-btn-7">Product 7</button>
+    <button id="product-btn-8">Product 8</button>
+  </div>
+
+  <pre id="result"></pre>
+  <script src="/assets/theme.js"></script>
+  <script src="/apps/stock/embed.js" defer></script>
+</body>
+</html>
