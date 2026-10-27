@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "API Inspector",
+  "version": "1.0.0",
+  "description": "See which API each button calls, find where an API is used, and change or fake requests.",
+  "minimum_chrome_version": "125",
+  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "scripting",
+    "webNavigation",
+    "userScripts",
+    "debugger"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html", "default_title": "API Inspector", "default_icon": { "16": "icons/16.png", "32": "icons/32.png" } },
+  "options_page": "rules.html",
+  "devtools_page": "devtools.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["inject.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_origin_as_fallback": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_origin_as_fallback": true
+    }
+  ]
+}
